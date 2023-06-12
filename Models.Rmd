@@ -1,0 +1,295 @@
+---
+title: "PoissonAnalysis"
+author: "Alejandro Aísa"
+date: "`r Sys.Date()`"
+output: pdf_document 
+---
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+library(pscl)
+library(MASS)
+library(msme)
+library(car)
+library(RcppRoll)
+library(modelsummary)
+library(kableExtra)
+library(tidyverse)
+```
+
+
+## Models 
+
+### Loading Data 
+
+Cliftonville aggregated database 
+
+```{r}
+Cliftonville <- read.csv("Databases/Final_Cliftonville.csv") %>% 
+  dplyr::select(-X) %>% 
+  mutate(
+    is_protest = as_factor(is_protest), 
+    CliftonvilleHome = as_factor(CliftonvilleHome), 
+    CliftonvilleWin = as_factor(CliftonvilleWin), 
+    pcg_catholics = pcg_catholics/100) %>%  
+  group_by(District) %>% 
+  mutate(
+    protests = lead(n_protests, n = 1), 
+    lagged_month = roll_sum(n_protests, n = 3, 
+                                         align = "right", fill = NA)) %>% 
+  ungroup %>% 
+  replace_na(
+    list(
+      protests = 0, 
+      lagged_month = 0, 
+      Distance_km = 46)) %>% 
+  ungroup() %>% 
+  dplyr::rename(
+    lagged_week = n_protests)
+
+```
+
+## Description 
+
+### Count 
+
+```{r}
+data.frame(table(Cliftonville$protests)); histogram(Cliftonville$protests)
+
+var(Cliftonville$protests)/mean(Cliftonville$protests) 
+
+```
+
+
+### Binary 
+
+```{r}
+data.frame(table(Cliftonville$is_protest));histogram(Cliftonville$is_protest)
+
+```
+
+### Keeping only numeric data 
+
+```{r}
+data <- Cliftonville %>% 
+  dplyr::select(-week, -District, -n_protesters) %>% 
+  transmute(
+    protests, 
+    is_protest, 
+    CHome = CliftonvilleHome, 
+    CWin = CliftonvilleWin, 
+    pcg_catholics, 
+    pcg_car, 
+    pcg_unem = pcg_Unem, 
+    distance = Distance_km, 
+    lagged_week,
+    lagged_month)
+  
+```
+
+## Models 
+
+### Single model 
+
+```{r}
+single <- glm(
+  is_protest ~
+    CHome + 
+    CWin, 
+  data = data, 
+  family = "binomial")
+
+summary(single)
+
+```
+
+
+
+### Logistic 
+
+```{r}
+
+#ctrl <- trainControl(method = "cv", number = 10)
+
+log_NI <- glm(
+  is_protest ~
+    CHome + 
+    CWin +
+    CHome*CWin +
+    pcg_catholics +
+    pcg_car +
+    pcg_unem + 
+    distance,  
+    # lagged_week, 
+    # lagged_month, 
+  data = data, 
+  family = "binomial") 
+
+summary(log_NI)
+
+```
+
+
+
+```{r}
+probabilities <- log_NI %>% predict(data, type = "response")
+
+ggplot(data, aes(x = CHome, y = probabilities))+
+  geom_boxplot(width = 0.3)+ 
+  ylim(-0.5, 1)+
+  theme_bw() ; 
+
+ggplot(data, aes(x = CWin, y = probabilities))+
+  geom_boxplot(width = 0.3)+ 
+  ylim(0, 1.6)+
+  theme_bw()
+  
+```
+
+
+
+#### Goodness of fit 
+
+```{r}
+msme::P__disp(log_NI)
+```
+
+### Negative Binomial 
+
+```{r}
+NB_NI <- glm.nb(
+  protests ~
+    CHome + 
+    CWin +
+    CHome*CWin +
+    pcg_catholics +
+    pcg_car +
+    pcg_unem + 
+    distance + 
+    lagged_week + 
+    lagged_month, 
+  data = data
+)
+
+summary(NB_NI)
+
+```
+
+#### Evaluation 
+
+```{r}
+exp(coefficients(NB_NI)); P__disp(NB_NI)
+
+```
+
+
+### Zero-Inflated Negative Binomial
+
+```{r}
+data2 <- data %>% dplyr::select(-is_protest)
+
+ZI2_NI <- zeroinfl(
+  protests ~
+    CHome + 
+    CWin +
+    pcg_catholics +
+    CHome*CWin +
+    pcg_car +
+    pcg_unem +
+    distance + 
+    lagged_week + 
+    lagged_month |
+    CHome + 
+    CWin +
+    pcg_catholics +
+    pcg_car +
+    pcg_unem + 
+    #lagged_week + 
+    #lagged_month +
+    distance, 
+  data = data2, 
+  dist="negbin", 
+  link="logit")
+
+summary(ZI2_NI)
+
+```
+
+```{r}
+exp(coefficients(ZI2_NI))
+
+P__disp(ZI2_NI)
+```
+
+
+### Tables 
+
+### Annex I 
+
+#### Quassi Poisson Model 
+
+```{r}
+QP_NI <- glm(
+  protests ~
+    CHome + 
+    CWin +
+    CHome*CWin +
+    pcg_catholics +
+    pcg_car +
+    pcg_unem + 
+    distance + 
+    lagged_week + 
+    lagged_month,  
+  data = data, 
+  family = "quasipoisson", 
+  control = list(maxit = 100))
+
+summary(QP_NI)
+```
+
+```{r}
+exp(coefficients(QP_NI))
+
+P__disp(QP_NI) # Dispersion 
+
+```
+
+#### Zero-Inflated Poisson
+
+```{r}
+ZI_NI <- zeroinfl(
+  protests ~
+    CHome + 
+    CWin +
+    CHome*CWin + 
+    pcg_catholics +
+    pcg_car +
+    pcg_unem +
+    distance + 
+    lagged_week + 
+    lagged_month |
+    CHome + 
+    CWin +
+    pcg_catholics +
+    pcg_car +
+    pcg_unem + 
+    #lagged_week + 
+    #lagged_month +
+    distance, 
+  data = data, 
+  dist="poisson", 
+  link="logit")
+
+summary(ZI_NI)
+```
+
+
+```{r}
+exp(coefficients(ZI_NI))
+
+P__disp(ZI_NI)
+
+```
+
+
+
