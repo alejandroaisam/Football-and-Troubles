@@ -1,0 +1,191 @@
+---
+title: "MapViz"
+author: "Alejandro Aísa"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+library(sp)
+library(rgdal)
+library(rgeos)
+library(sf)
+library(lubridate)
+require(gganimate)
+require(transformr)
+require(ggthemes)
+library(ggspatial)
+library(tidyverse)
+```
+
+## Data 
+
+### NI Shapefile 
+
+```{r}
+NI <- read_sf("data/NI.shp")%>% 
+  dplyr::select(NAME_3, geometry) %>% 
+  rename(District = NAME_3) %>% 
+  mutate(
+    District = dplyr::recode(District, "Newry and Mourne" = "Newry & Mourne"))
+```
+
+
+### Protests by month 
+
+```{r message=FALSE, warning=FALSE}
+Final_Derry <- read_csv("Databases/Final_Derry.csv") %>% 
+  dplyr::select(-...1) %>% 
+  group_by(month = floor_date(week, unit = "month"), District) %>% 
+  mutate(
+    monthly_protests = sum(n_protests)
+  ) %>% 
+  ungroup()
+```
+
+### Protests by year
+
+```{r message=FALSE, warning=FALSE}
+df <- read_csv("Databases/Final_Derry.csv")
+
+data_year <- df |> 
+  dplyr::select(-...1) %>% 
+  group_by(year = floor_date(week, unit = "year"), District) %>% 
+  summarise(
+    yearly_protests = sum(n_protests)) |> 
+  ungroup()|> 
+  mutate(
+    year = year(year))
+
+pyear <- NI |> 
+  left_join(data_year, by = "District")
+  
+```
+
+#### Protest by period
+
+```{r}
+data1980 <- data_year |> 
+  filter(year <= 1983) |> 
+  group_by(District) |> 
+  summarise(n_protests = sum(yearly_protests)) |> 
+  mutate(Period = "FirstPeriod")
+
+data1984 <- data_year |> 
+  filter(year > 1983 & year <= 1987) |> 
+  group_by(District) |> 
+  summarise(n_protests = sum(yearly_protests)) |> 
+  mutate(Period = "SecondPeriod")
+
+data1988 <- data_year |> 
+  filter(year > 1987 &year <= 1991) |> 
+  group_by(District) |> 
+  summarise(n_protests = sum(yearly_protests)) |> 
+  mutate(Period = "ThirdPeriod")
+
+data1991 <- data_year |> 
+  filter(year > 1991) |> 
+  group_by(District) |> 
+  summarise(n_protests = sum(yearly_protests)) |> 
+  mutate(Period = "FourthPeriod")
+
+period_data <- rbind(data1980, data1984, data1988, data1991) |> 
+  subset(District != "Other")
+
+pperiod <- NI |> 
+  left_join(period_data, by = "District") 
+```
+
+
+## The Maps
+
+### Features 
+
+```{r}
+sysfonts::font_add_google("Gideon Roman", family = "gideon roman")
+showtext::showtext_auto()  
+```
+
+### Protests per year, static. 
+
+```{r}
+pm <- ggplot()+
+  geom_sf(data = pyear, aes(fill = log(yearly_protests + 1)))+
+  scale_fill_gradient(low = "lightyellow", high = "red")+
+  theme_map()+
+  labs(title = "Number of protests per year")+
+  theme(
+    plot.title = element_text(face = "bold", 
+                              size = 10, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    legend.position = "none") +
+  facet_wrap(~year)
+```
+
+```{r}
+pm
+```
+
+### Protests per year, animated. 
+
+```{r message=FALSE, warning=FALSE}
+ma <- ggplot()+
+  geom_sf(data = pyear, aes(fill = log(yearly_protests +1 )))+
+  geom_sf_label(data = pyear, aes(label = District), size = 2.5)+
+  scale_fill_gradient(low = "lightyellow", high = "red")+ 
+  annotation_north_arrow(location = "tr", 
+                         which_north = "true",
+                         style = north_arrow_fancy_orienteering, 
+                         height = unit(2, "cm"), 
+                         width = unit(2, "cm"))+
+  annotation_scale(location = "bl") +
+  theme_map()+
+  transition_manual(year)+
+  ggtitle("Year: {frame + 1978}", 
+          subtitle = "Number of protests per year")+
+  theme(
+    plot.title = element_text(face = "bold", 
+                              size = 14, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    plot.subtitle = element_text(size = 12, 
+                                 hjust = 0.5, 
+                                 family = "gideon roman"),
+  legend.position = "none") +
+  labs(x = NULL, y = NULL)
+```
+
+```{r message=FALSE, warning=FALSE}
+pma <- animate(ma, fps = 5)
+pma
+```
+
+### Protests by period
+
+```{r}
+pm2 <- ggplot()+
+  geom_sf(data = pperiod, aes(fill = log(n_protests + 1)))+
+  scale_fill_gradient(low = "lightyellow", high = "red")+
+  theme_map()+
+  labs(title = "Number of protests per period")+
+  theme(
+    plot.title = element_text(face = "bold", 
+                              size = 10, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    legend.position = "none") +
+  facet_wrap(~Period)
+```
+
+```{r}
+pm2
+```
+

@@ -1,0 +1,205 @@
+---
+title: "TimeSeries"
+author: "Alejandro Aísa"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+### Libraries 
+
+```{r}
+library(tidyverse)
+library(readr)
+library(lubridate)
+require(tidyquant)
+```
+
+### Data 
+
+#### Monthly protests - District aggregated 
+
+```{r}
+NI <- read_csv("Databases/Final_Derry.csv") %>% 
+  select(-...1)  %>% 
+  group_by(month = floor_date(week, unit = "month"), District) %>% 
+  summarise(
+    monthly_protests = sum(n_protests)
+  ) %>% 
+  ungroup()
+```
+
+#### Montly protests - NI
+
+```{r}
+total <- NI %>% group_by(month) %>% 
+  summarise(
+    total_protests = sum(monthly_protests)
+  )
+```
+
+#### Derry 
+
+```{r}
+Derry <- NI %>% 
+  filter(District == "Derry") 
+```
+
+#### Belfast 
+
+```{r}
+Belfast <- NI %>% 
+  filter(District == "Belfast")
+```
+
+#### RDD
+
+```{r}
+RDD <- total %>% 
+  filter(month >= "1983-01-01" & month <= "1990-12-31")
+```
+
+### Time Series 
+
+```{r}
+sysfonts::font_add_google("Playfair Display", family = "playfair display")
+sysfonts::font_add_google("Gideon Roman", family = "gideon roman")
+showtext::showtext_auto()  
+```
+
+
+#### Montly protests 
+
+```{r}
+pi <- ggplot(data = total, aes(x = month, y = total_protests )) +
+  geom_line()+
+  geom_vline(xintercept = as.numeric(Derry$month[86]), linetype = 4)+
+  geom_ma(n = 6, color = "red")+
+  theme_classic()+
+  labs(
+    title = "Figure 1: Protests in Northern Ireland",
+    subtitle = 
+      "Evolution in time of the monthly number of protests in Northern Ireland",
+    x = "year", 
+    y = "number of protests", 
+    caption = "Source: Own work and Ron Francisco's database")+
+  theme(
+    plot.title = element_text(face = "bold", 
+                              size = 14, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    plot.subtitle = element_text(size = 12, 
+                                 hjust = 0.5, 
+                                 family = "gideon roman"),
+    plot.caption = element_text(size = 8, family = "gideon roman"),
+    axis.title.x = element_text(size = 11, family = "gideon roman"), 
+    axis.title.y = element_text(size = 11, family = "gideon roman"))
+```
+
+
+```{r}
+pi
+```
+#### Montly protests in Derry 
+
+```{r}
+pd <- ggplot(data = Derry, aes(x = month, y = monthly_protests )) +
+  geom_line()+
+  geom_vline(xintercept = as.numeric(Derry$month[86]), linetype = 4)+
+  geom_ma(n = 6, color = "red")+
+  theme_classic()+
+  labs(
+    title = "Figure 2: Protests in Derry",
+    subtitle = 
+      "Evolution in time of the monthly number of protests in Derry",
+    x = "year", 
+    y = "number of protests", 
+    caption = "Source: Own work and Ron Francisco's database")+
+   theme(
+    plot.title = element_text(face = "bold", 
+                              size = 14, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    plot.subtitle = element_text(size = 12, 
+                                 hjust = 0.5, 
+                                 family = "gideon roman"),
+    plot.caption = element_text(size = 8, family = "gideon roman"),
+    axis.title.x = element_text(size = 11, family = "gideon roman"), 
+    axis.title.y = element_text(size = 11, family = "gideon roman"))
+```
+
+```{r}
+pd
+```
+
+#### Mothly protests in Belfast 
+
+```{r}
+pb <- ggplot(data = Belfast, aes(x = month, y = monthly_protests )) +
+  geom_line()+
+  geom_vline(xintercept = as.numeric(Derry$month[86]), linetype = 4)+
+  geom_ma(n = 6, color = "red")+
+  theme_classic()+
+  labs(
+    title = "Figure 3: Protests in Belfast",
+    subtitle = 
+      "Evolution in time of the monthly number of protests in Belfast",
+    x = "year", 
+    y = "number of protests", 
+    caption = "Source: Own work and Ron Francisco's database")+
+   theme(
+    plot.title = element_text(face = "bold", 
+                              size = 14, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    plot.subtitle = element_text(size = 12, 
+                                 hjust = 0.5, 
+                                 family = "gideon roman"),
+    plot.caption = element_text(size = 8, family = "gideon roman"),
+    axis.title.x = element_text(size = 11, family = "gideon roman"), 
+    axis.title.y = element_text(size = 11, family = "gideon roman"))
+```
+
+```{r}
+pb
+```
+
+#### Discontinuity 
+
+```{r}
+prdd <- ggplot(data = RDD, aes(x = month, y = total_protests )) +
+  geom_line()+
+  geom_vline(xintercept = as.numeric(Derry$month[86]), linetype = 4)+
+  geom_ma(n = 6, color = "red")+
+  theme_classic()+
+  labs(
+    title = "Figure 4: Protests before and after Derry FC",
+    subtitle = 
+      "Evolution in time of the monthly number of protests in Northern Ireland",
+    x = "year", 
+    y = "number of protests", 
+    caption = "Source: Own work and Ron Francisco's database")+
+   theme(
+    plot.title = element_text(face = "bold", 
+                              size = 14, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    plot.subtitle = element_text(size = 12, 
+                                 hjust = 0.5, 
+                                 family = "gideon roman"),
+    plot.caption = element_text(size = 8, family = "gideon roman"),
+    axis.title.x = element_text(size = 11, family = "gideon roman"), 
+    axis.title.y = element_text(size = 11, family = "gideon roman"))
+```
+
+```{r}
+prdd
+```
+

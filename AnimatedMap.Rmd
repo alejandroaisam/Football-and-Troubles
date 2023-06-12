@@ -1,0 +1,109 @@
+---
+title: "AnimatedMap"
+author: "Alejandro Aísa"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(sp)
+library(rgdal)
+library(rgeos)
+library(sf)
+library(lubridate)
+require(gganimate)
+require(transformr)
+require(ggthemes)
+library(ggspatial)
+library(tidyverse)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+NI <- read_sf("data/NI.shp")%>% 
+  dplyr::select(NAME_3, geometry) %>% 
+  rename(District = NAME_3) %>% 
+  mutate(
+    District = dplyr::recode(District, "Newry and Mourne" = "Newry & Mourne"))
+
+df <- read_csv("Databases/Final_Derry.csv")
+
+data_year <- df |> 
+  dplyr::select(-...1) %>% 
+  group_by(year = floor_date(week, unit = "year"), District) %>% 
+  summarise(
+    yearly_protests = sum(n_protests)) |> 
+  ungroup()|> 
+  mutate(
+    year = year(year))
+
+pyear <- NI |> 
+  left_join(data_year, by = "District")
+
+sysfonts::font_add_google("Gideon Roman", family = "gideon roman")
+showtext::showtext_auto()
+  
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+ma <- ggplot()+
+  geom_sf(data = pyear, aes(fill = log(yearly_protests +1 )))+
+  geom_sf_label(data = pyear, aes(label = District), size = 2.5)+
+  scale_fill_gradient(low = "lightyellow", high = "red")+ 
+  annotation_north_arrow(location = "tr", 
+                         which_north = "true",
+                         style = north_arrow_fancy_orienteering, 
+                         height = unit(2, "cm"), 
+                         width = unit(2, "cm"))+
+  annotation_scale(location = "bl") +
+  theme_map()+
+  transition_manual(year)+
+  ggtitle("Year: {frame + 1978}", 
+          subtitle = "Number of protests per year")+
+  theme(
+    plot.title = element_text(face = "bold", 
+                              size = 14, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    plot.subtitle = element_text(size = 12, 
+                                 hjust = 0.5, 
+                                 family = "gideon roman"),
+  legend.position = "none") +
+  labs(x = NULL, y = NULL)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pma <- animate(ma, fps = 5)
+pma
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
