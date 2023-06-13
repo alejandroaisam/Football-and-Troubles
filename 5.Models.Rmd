@@ -4,6 +4,15 @@ author: "Alejandro Aísa"
 date: "`r Sys.Date()`"
 output: pdf_document 
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+The following correspond to the section II of the master's thesis. More specifically, this part of the code is devoted to the construction of various generalized linear models to analyse the effect of football matches in protests. 
 
 ```{r message=FALSE, warning=FALSE}
 library(caret)
@@ -17,12 +26,13 @@ library(kableExtra)
 library(tidyverse)
 ```
 
-
 ## Models 
 
 ### Loading Data 
 
-Cliftonville aggregated database 
+For this section of the thesis we load the database concerning the matches of Cliftonville AFC. in order to allow the regression to work, some variables are recoded as factor. We also include the lagged variables. 
+
+Similarly, matches are usually played on Sundays. Thus, we establish that the variable to predict is the number of protests of next week. Similarly, some week-district had two matches. However, they cannot be remove as they entail different events, which can affect very differently. 
 
 ```{r}
 Cliftonville <- read.csv("Databases/Final_Cliftonville.csv") %>% 
@@ -51,6 +61,14 @@ Cliftonville <- read.csv("Databases/Final_Cliftonville.csv") %>%
 
 ## Description 
 
+Before the analysis, it was necessary to get a glimpse of the data. 
+
+### Binary 
+
+```{r}
+data.frame(table(Cliftonville$is_protest));histogram(Cliftonville$is_protest)
+```
+
 ### Count 
 
 ```{r}
@@ -60,15 +78,11 @@ var(Cliftonville$protests)/mean(Cliftonville$protests)
 
 ```
 
-
-### Binary 
-
-```{r}
-data.frame(table(Cliftonville$is_protest));histogram(Cliftonville$is_protest)
-
-```
+The previous information demonstrates the high number of week-districts without protests and the over dispersion of data. Hence why Negative Binomial and Zero-Inflated models will be constructed. 
 
 ### Keeping only numeric data 
+
+For software purposes, only numeric data kept. 
 
 ```{r}
 data <- Cliftonville %>% 
@@ -89,6 +103,8 @@ data <- Cliftonville %>%
 
 ## Models 
 
+Final step is to construct the various models, in increasing complexity. 
+
 ### Single model 
 
 ```{r}
@@ -108,9 +124,6 @@ summary(single)
 ### Logistic 
 
 ```{r}
-
-#ctrl <- trainControl(method = "cv", number = 10)
-
 log_NI <- glm(
   is_protest ~
     CHome + 
@@ -120,16 +133,12 @@ log_NI <- glm(
     pcg_car +
     pcg_unem + 
     distance,  
-    # lagged_week, 
-    # lagged_month, 
   data = data, 
   family = "binomial") 
 
 summary(log_NI)
 
 ```
-
-
 
 ```{r}
 probabilities <- log_NI %>% predict(data, type = "response")
@@ -204,8 +213,6 @@ ZI2_NI <- zeroinfl(
     pcg_catholics +
     pcg_car +
     pcg_unem + 
-    #lagged_week + 
-    #lagged_month +
     distance, 
   data = data2, 
   dist="negbin", 
@@ -222,9 +229,7 @@ P__disp(ZI2_NI)
 ```
 
 
-### Tables 
-
-### Annex I 
+### Additional models
 
 #### Quassi Poisson Model 
 
@@ -250,7 +255,7 @@ summary(QP_NI)
 ```{r}
 exp(coefficients(QP_NI))
 
-P__disp(QP_NI) # Dispersion 
+P__disp(QP_NI) 
 
 ```
 

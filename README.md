@@ -26,7 +26,7 @@ This step allow to gather the data from the original sources and prepare it for 
 
 ## 2. Aggregating
 
-At this step, the different dataframes are merged into an unified table; independent, dependent and control variables are created and joined into a single file. The result is the final dataframe which accounts for the desired unit of observation: week district.
+At this step, the different dataframes are merged into an unified table; independent, dependent and control variables are joined into a single file. The result is the final dataframe which accounts for the desired unit of observation: week district.
 
 ## 3. Derry City FC analysis
 
