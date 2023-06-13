@@ -1,0 +1,220 @@
+---
+title: "aggregating"
+author: "Alejandro Aísa"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(rvest)
+library(xml2)
+library(readxl)
+library(RcppRoll)
+```
+
+This is the second step of the data management from the master's thesis. Once the data is already gathered and cleaned, we are able to format it and create the dependent variable at the aggregation level needed for the analysis. 
+
+## 1. Loading data 
+
+First, we need to load the dataframes cleaned and filtered for the territory of Northern Ireland and the football data. 
+
+```{r}
+Protests <-  read_csv("Databases/Protests/ProtestsFiltered.csv") %>% 
+  dplyr::select(-...1) %>% 
+  filter(Country == "UK/Northern Ireland") 
+
+Derry <- read_csv("Databases/DerryCity/DerryCityCleaned.csv") %>% 
+  dplyr::select(-...1) %>% 
+  filter(Competition == "Prem" | Competition == "First") %>% 
+  group_by(week = floor_date(Date, unit = "week"), District) %>% 
+  transmute(
+    DerryHome, 
+    DerryWin) %>% 
+  ungroup()
+
+Cliftonville <- read_csv("~/CliftonvilleCleaned.csv") %>% 
+  dplyr::select(-...1) %>% 
+  group_by(week = floor_date(MatchDate, unit = "week"), District) %>% 
+  transmute(
+    CliftonvilleHome,  
+    CliftonvilleWin) %>% 
+  ungroup()
+```
+
+## 2. Aggregating
+
+First, we need create a sequence that accounts for all the days ranging from the first of January 1980 to the 31st of December 1995. i.e. the period of study. 
+
+```{r}
+date <- seq(as.Date("1980/01/01"), as.Date("1995/12/31"), by = "day")
+```
+
+Then, we obtain the number of protests per day. This step is necessary to perform the future aggregations. 
+
+```{r}
+Agg_protests <- Protests %>% 
+  group_by(Date, District) %>% 
+  summarise(
+    n_protests = n(), 
+    n_protesters = sum(N_Protesters)) %>%  
+  ungroup()
+```
+
+### 2.1. Week-District Aggregation
+
+At this step, we are able to create the dependent variable, which accounts for the number of protests per district. To do that, we join the sequence of the dates with the protests. Then, we just need to replace missing values from the dataframe with '0s'. It is necessary to establish that days without protests or matches are not missing data. Finally, I just group by week and district and sum the number of protests that took place. Likewise, the binary independent variable is created. 
+
+```{r}
+weekly_protests <- as_tibble(date) %>%
+  rename(Date = value) %>%
+  left_join(Agg_protests, by = c("Date")) %>%
+  complete(Date, District) %>% 
+  drop_na(District) %>% 
+  mutate(
+    n_protests = coalesce(n_protests, 0), 
+    n_protesters = coalesce(n_protesters, 0)) %>% 
+  group_by(week = floor_date(Date, unit = "week"), District) %>% 
+  summarise(
+    n_protests = sum(n_protests), 
+    n_protesters = sum(n_protesters)) %>% 
+  mutate(
+    is_protest = ifelse(n_protests >= 1, 1, 0)) 
+```
+
+#### 2.1.1. Derry aggregated 
+
+With the data of protests aggregated by week, I can finally merge it with the Derry City FC results. 
+
+```{r}
+Derry_aggregated <-  weekly_protests  %>% 
+  left_join(Derry, by = c("week", "District")) %>% 
+  mutate(
+    DerryHome = coalesce(DerryHome, 0), 
+    DerryWin = coalesce(DerryWin, 0)) 
+    
+  
+write.csv(Derry_aggregated, "Databases/Derry_aggregated.csv")
+```
+
+#### 2.1.2. Cliftonville aggregated 
+
+Likewise, we can merge protests and Cliftonville results. 
+
+```{r}
+Cliftonville_aggregated <- weekly_protests %>% 
+  left_join(Cliftonville, by = c("week", "District")) %>% 
+  mutate(
+    CliftonvilleHome = coalesce(CliftonvilleHome, 0), 
+    CliftonvilleWin = coalesce(CliftonvilleWin, 0)) 
+
+write.csv(Cliftonville_aggregated, "Databases/Cliftonville_aggregated.csv")
+```
+
+## 3. Adding control variables 
+
+When we have the dependent and independent variables together in a single dataframe, we may add the control variables. 
+
+### 3.1. Loading the dataframes 
+
+Luckily, we have been working in different dataframes for each particular variable. Thus, we may load the control variables and the (in)dependent variables at once:
+
+```{r}
+Religion <- read_csv("Databases/Religion.csv") %>% 
+  dplyr::select(-...1)
+
+Religion1981 <- Religion %>% 
+  select(District, pcg1981)
+
+Religion1991 <- Religion %>% 
+  select(District, pcg1991)
+
+Belfast_Distances <- read_csv("Databases/Belfast_Distances.csv")%>% 
+  dplyr::select(-...1, -Distance)
+
+Derry_Distances <- read_csv("Databases/Derry_Distances.csv")%>% 
+  dplyr::select(-...1, -Distance)
+
+control1981 <- read.csv("Databases/control1981.csv") %>% 
+  dplyr::select(District, pcg_car, pcg_Unem)
+
+control1991 <- read.csv("Databases/control1991.csv") %>% 
+  dplyr::select(District, pcg_car, pcg_Unem) %>% 
+  drop_na()
+
+Cliftonville_aggregated <- read_csv("Databases/Cliftonville_aggregated.csv") %>%
+  dplyr::select(-...1)
+
+Derry_aggregated <- read_csv("Databases/Derry_aggregated.csv") %>% 
+  dplyr::select(-...1)
+
+```
+
+### 3.2. Adding controls to the Derry Database
+
+As stated in the thesis, for the period 1980-1987, the data from the 1981 census will be assigned. Then, the census of 1991 will provide the data for the period 1988-1995. 
+
+Taking advantage of the workflow, I just need to `left_join` the different dataframes to have the final one. 
+
+```{r}
+DA_81_87 <- Derry_aggregated %>% 
+  mutate(
+    week = ymd(week)) %>% 
+  filter(week < "1987-01-01") %>% 
+  left_join(Religion1981, by = "District") %>% 
+  rename(pcg_catholics = pcg1981) %>% 
+  replace_na(list(pcg_catholics = 38.8, Catholic_majority = 0)) %>% 
+  left_join(control1981, by = "District") %>% 
+  replace_na(list(pcg_car = 0.81, pcg_Unem = 0.19)) 
+
+DA_87_95 <- Derry_aggregated %>% 
+  mutate(
+    week = ymd(week)) %>% 
+  filter(week >= "1987-01-01") %>% 
+  left_join(Religion1991, by = "District") %>% 
+  rename(pcg_catholics = pcg1991) %>% 
+  replace_na(list(pcg_catholics = 38.8, Catholic_majority = 0)) %>% 
+  left_join(control1991, by = "District") %>% 
+  replace_na(list(pcg_car = 0.68, pcg_Unem = 0.16)) 
+
+Final_Derry <- rbind(DA_81_87, DA_87_95)%>% 
+  left_join(Derry_Distances, by = "District")
+
+write.csv(Final_Derry, "Databases/Final_Derry.csv")
+```
+
+### 3.3. Adding control to the Cliftonville database
+
+Same as before, I just need to merge the different databases:
+
+```{r}
+CA_81_87 <- Cliftonville_aggregated %>% 
+  mutate(
+    week = ymd(week)) %>% 
+  filter(week < "1987-01-01") %>% 
+  left_join(Religion1981, by = "District") %>% 
+  rename(pcg_catholics = pcg1981) %>% 
+  replace_na(list(pcg_catholics = 38.8, Catholic_majority = 0)) %>% 
+  left_join(control1981, by = "District") %>% 
+  replace_na(list(pcg_car = 0.81, pcg_Unem = 0.19)) 
+
+CA_87_95 <- Cliftonville_aggregated %>% 
+  mutate(
+    week = ymd(week)) %>% 
+  filter(week >= "1987-01-01") %>% 
+  left_join(Religion1991, by = "District") %>% 
+  rename(pcg_catholics = pcg1991) %>% 
+  replace_na(list(pcg_catholics = 38.8, Catholic_majority = 0)) %>% 
+  left_join(control1991, by = "District") %>% 
+  replace_na(list(pcg_car = 0.68, pcg_Unem = 0.16)) 
+
+Final_Cliftonville <- rbind(CA_81_87, CA_87_95) %>% 
+  left_join(Belfast_Distances, by = "District")
+
+write.csv(Final_Cliftonville, "Databases/Final_Cliftonville.csv")
+```
+
+The resulting dataframes are ready for the analysis. Now they contain the data aggregated at the week-district level, accounting for the number of protests, whether the teams played at home or won a match. The control variables accounting for the percentage of catholics, the distance to the City, and the socio-economic variables are also included. 
+
+It has to be mention that this new table is not the definitive dataframe for all of the analyses. It is the general one that accounts for all the variables needed. Then, minor changes will be done at each section to have the specifics needed for each study. 
