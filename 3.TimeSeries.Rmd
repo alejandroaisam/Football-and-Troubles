@@ -13,6 +13,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+The following code corresponds to the first part of the section I of the masters' thesis. The visualization of the number of protests in the region of Northern Ireland in different maps. 
+
 ### Libraries 
 
 ```{r}
@@ -23,6 +25,8 @@ require(tidyquant)
 ```
 
 ### Data 
+
+As usual, we may load all the data stored in the repository. As stated in the previous step some specific featuring will be performed at each step. In this case, the number of protests per month in various contexts are to be calculated. 
 
 #### Monthly protests - District aggregated 
 
@@ -74,8 +78,9 @@ sysfonts::font_add_google("Gideon Roman", family = "gideon roman")
 showtext::showtext_auto()  
 ```
 
-
 #### Montly protests 
+
+First time series depicting the number of protests per month in the region of Northern Ireland. 
 
 ```{r}
 pi <- ggplot(data = total, aes(x = month, y = total_protests )) +
@@ -109,6 +114,8 @@ pi
 ```
 #### Montly protests in Derry 
 
+Second time series: number of protests per month only in the Derry District. 
+
 ```{r}
 pd <- ggplot(data = Derry, aes(x = month, y = monthly_protests )) +
   geom_line()+
@@ -141,6 +148,8 @@ pd
 
 #### Mothly protests in Belfast 
 
+Third visual representation: Number of protests per month in the District of Belfast. 
+
 ```{r}
 pb <- ggplot(data = Belfast, aes(x = month, y = monthly_protests )) +
   geom_line()+
@@ -172,6 +181,8 @@ pb
 ```
 
 #### Discontinuity 
+
+Additional representation accounting for the regression discontinuity design. The monthly number of protests in NI in the period 1983-1991 are present. 
 
 ```{r}
 prdd <- ggplot(data = RDD, aes(x = month, y = total_protests )) +

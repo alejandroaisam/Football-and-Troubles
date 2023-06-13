@@ -4,6 +4,9 @@ author: "Alejandro Aísa"
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
+
+The following code corresponds to the second part of the section I of the masters' thesis. The geographical representation of the number of protests in the region of Northern Ireland in different maps. 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -27,6 +30,8 @@ library(tidyverse)
 
 ## Data 
 
+As usual, we may load all the data stored in the repository. As stated in the previous step some specific featurings will be performed at each step. In this case, the number of protests per month, per year and per periods are to be calculated. 
+
 ### NI Shapefile 
 
 ```{r}
@@ -36,7 +41,6 @@ NI <- read_sf("data/NI.shp")%>%
   mutate(
     District = dplyr::recode(District, "Newry and Mourne" = "Newry & Mourne"))
 ```
-
 
 ### Protests by month 
 
@@ -69,7 +73,7 @@ pyear <- NI |>
   
 ```
 
-#### Protest by period
+### Protest by period
 
 ```{r}
 data1980 <- data_year |> 
@@ -103,8 +107,9 @@ pperiod <- NI |>
   left_join(period_data, by = "District") 
 ```
 
-
 ## The Maps
+
+Three main maps are constructed. 
 
 ### Features 
 
@@ -114,6 +119,8 @@ showtext::showtext_auto()
 ```
 
 ### Protests per year, static. 
+
+The first one involve the representations of the log number of protests per district, faceting per each year. 
 
 ```{r}
 pm <- ggplot()+
@@ -135,6 +142,8 @@ pm
 ```
 
 ### Protests per year, animated. 
+
+The second map is the animated version of the first representation. A separate markdown can be found for knitting purposes. 
 
 ```{r message=FALSE, warning=FALSE}
 ma <- ggplot()+
@@ -169,6 +178,13 @@ pma
 ```
 
 ### Protests by period
+
+Third map: geographical represention of the log number of protests in four periods: 
+
+1. 1979-1983
+2. 1984-1987
+3. 1988-1991
+4. 1992-1995
 
 ```{r}
 pm2 <- ggplot()+
