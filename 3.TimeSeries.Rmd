@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-The following code corresponds to the first part of the section I of the masters' thesis. The visualization of the number of protests in the region of Northern Ireland in different formats. 
+The following code corresponds to the first part of the section I of the masters' thesis. The visualization of the number of protests in the region of Northern Ireland in different areas.  
 
 ### Libraries 
 

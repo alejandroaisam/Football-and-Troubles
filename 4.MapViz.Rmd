@@ -30,7 +30,7 @@ library(tidyverse)
 
 ## Data 
 
-As usual, we may load all the data stored in the repository. As stated in the previous step some specific featurings will be performed at each step. In this case, the number of protests per month, per year and per periods are to be calculated. 
+As usual, we may load all the data stored in the repository. As stated before,  some specific featuring will be performed at each step. In this case, the number of protests per year and per period are calculated. 
 
 ### NI Shapefile 
 
@@ -40,18 +40,6 @@ NI <- read_sf("data/NI.shp")%>%
   rename(District = NAME_3) %>% 
   mutate(
     District = dplyr::recode(District, "Newry and Mourne" = "Newry & Mourne"))
-```
-
-### Protests by month 
-
-```{r message=FALSE, warning=FALSE}
-Final_Derry <- read_csv("Databases/Final_Derry.csv") %>% 
-  dplyr::select(-...1) %>% 
-  group_by(month = floor_date(week, unit = "month"), District) %>% 
-  mutate(
-    monthly_protests = sum(n_protests)
-  ) %>% 
-  ungroup()
 ```
 
 ### Protests by year
@@ -80,28 +68,28 @@ data1980 <- data_year |>
   filter(year <= 1983) |> 
   group_by(District) |> 
   summarise(n_protests = sum(yearly_protests)) |> 
-  mutate(Period = "FirstPeriod")
+  mutate(Period = "1979-83")
 
 data1984 <- data_year |> 
   filter(year > 1983 & year <= 1987) |> 
   group_by(District) |> 
   summarise(n_protests = sum(yearly_protests)) |> 
-  mutate(Period = "SecondPeriod")
+  mutate(Period = "1984-1987")
 
 data1988 <- data_year |> 
   filter(year > 1987 &year <= 1991) |> 
   group_by(District) |> 
   summarise(n_protests = sum(yearly_protests)) |> 
-  mutate(Period = "ThirdPeriod")
+  mutate(Period = "1988-91")
 
 data1991 <- data_year |> 
   filter(year > 1991) |> 
   group_by(District) |> 
   summarise(n_protests = sum(yearly_protests)) |> 
-  mutate(Period = "FourthPeriod")
+  mutate(Period = "1992-1995")
 
 period_data <- rbind(data1980, data1984, data1988, data1991) |> 
-  subset(District != "Other")
+  subset(District != "Other") 
 
 pperiod <- NI |> 
   left_join(period_data, by = "District") 
@@ -111,7 +99,7 @@ pperiod <- NI |>
 
 Three main maps are constructed. 
 
-### Features 
+### Fonts 
 
 ```{r}
 sysfonts::font_add_google("Gideon Roman", family = "gideon roman")
@@ -177,9 +165,9 @@ pma <- animate(ma, fps = 5)
 pma
 ```
 
-### Protests by period
+### Protests by period (Annex I)
 
-Third map: geographical represention of the log number of protests in four periods: 
+Third map: geographical representation of the log number of protests in four periods: 
 
 1. 1979-1983
 2. 1984-1987
