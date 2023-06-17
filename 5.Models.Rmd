@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-The following correspond to the section II of the master's thesis. More specifically, this part of the code is devoted to the construction of various generalized linear models to analyse the effect of football matches in protests. 
+The following code corresponds to the section II of the master's thesis. More specifically, it is devoted to the construction of various generalized linear models to analyse the effect of football matches in protests. As an aclanatory note, the interpretations are present in the proper thesis. 
 
 ```{r message=FALSE, warning=FALSE}
 library(caret)
@@ -30,9 +30,9 @@ library(tidyverse)
 
 ### Loading Data 
 
-For this section of the thesis we load the database concerning the matches of Cliftonville AFC. in order to allow the regression to work, some variables are recoded as factor. We also include the lagged variables. 
+For this section of the thesis we load the database concerning the matches of Cliftonville. To allow the regression work, some variables are recoded as factor. We also include the lagged variables for the negative binomial models. 
 
-Similarly, matches are usually played on Sundays. Thus, we establish that the variable to predict is the number of protests of next week. Similarly, some week-district had two matches. However, they cannot be remove as they entail different events, which can affect very differently. 
+Similarly, matches are usually played on Sundays. Thus, we establish that the actual variable to predict is the number of protests of the next week. Similarly, some week-district had two matches. However, they cannot be removed as they entail different events, which can affect very differently to the proper outcome. 
 
 ```{r}
 Cliftonville <- read.csv("Databases/Final_Cliftonville.csv") %>% 
@@ -59,6 +59,9 @@ Cliftonville <- read.csv("Databases/Final_Cliftonville.csv") %>%
 
 ```
 
+
+
+
 ## Description 
 
 Before the analysis, it was necessary to get a glimpse of the data. 
@@ -72,17 +75,15 @@ data.frame(table(Cliftonville$is_protest));histogram(Cliftonville$is_protest)
 ### Count 
 
 ```{r}
-data.frame(table(Cliftonville$protests)); histogram(Cliftonville$protests)
-
-var(Cliftonville$protests)/mean(Cliftonville$protests) 
+data.frame(table(Cliftonville$protests)); histogram(Cliftonville$protests);var(Cliftonville$protests)/mean(Cliftonville$protests) 
 
 ```
 
-The previous information demonstrates the high number of week-districts without protests and the over dispersion of data. Hence why Negative Binomial and Zero-Inflated models will be constructed. 
+The previous information demonstrates the high number of week-districts without protests and the over dispersion of data. Thus, the need for Negative Binomial and Zero-Inflated models. 
 
 ### Keeping only numeric data 
 
-For software purposes, only numeric data kept. 
+We keep only numeric data to run the regressions: 
 
 ```{r}
 data <- Cliftonville %>% 
@@ -103,31 +104,42 @@ data <- Cliftonville %>%
 
 ## Models 
 
-Final step is to construct the various models, in increasing complexity. 
-
 ### Single model 
 
+First model we train is a simple logistic regression accounting for the footballing variables. 
+
 ```{r}
-single <- glm(
+log_sim <- glm(
   is_protest ~
     CHome + 
     CWin, 
   data = data, 
   family = "binomial")
 
-summary(single)
+summary(log_sim)
 
 ```
 
+Secondly we can construct the same model, including the interaction between the variables. 
 
+```{r}
+log_int <- glm(
+  is_protest ~ 
+    CHome*CWin, 
+  data = data, 
+  family = "binomial")
+
+
+summary(log_int)
+```
 
 ### Logistic 
 
+Lastly, we can train the logistic regression, including all the control variables: percentage of catholics, % oh Households with car, the unemployment level (%) and the distance to belfast. 
+
 ```{r}
-log_NI <- glm(
+log_com <- glm(
   is_protest ~
-    CHome + 
-    CWin +
     CHome*CWin +
     pcg_catholics +
     pcg_car +
@@ -136,40 +148,67 @@ log_NI <- glm(
   data = data, 
   family = "binomial") 
 
-summary(log_NI)
+summary(log_com); msme::P__disp(log_NI)
+
 
 ```
+Once the model is trained, we plot the increase in odds for protests for each term of the interaction. For that, we first create a new dataframe that accounts for the predicted odds, given average control variables. Then, we may calculate the limits for the confidence intervals. 
 
 ```{r}
-probabilities <- log_NI %>% predict(data, type = "response")
 
-ggplot(data, aes(x = CHome, y = probabilities))+
-  geom_boxplot(width = 0.3)+ 
-  ylim(-0.5, 1)+
-  theme_bw() ; 
+nd = expand.grid(CHome = 0:1, CWin = 0:1) |> 
+mutate(
+  CHome = as.factor(CHome),
+  CWin = as.factor(CWin))
 
-ggplot(data, aes(x = CWin, y = probabilities))+
-  geom_boxplot(width = 0.3)+ 
-  ylim(0, 1.6)+
-  theme_bw()
-  
+
+nd$pcg_catholics = mean(data$pcg_catholics, na.rm = TRUE)
+nd$pcg_car = mean(data$pcg_car, na.rm = TRUE)
+nd$pcg_unem = mean(data$pcg_unem, na.rm = TRUE)
+nd$distance = mean(data$distance, na.rm = TRUE)
+
+nd$y = predict(log_com, newdata = nd)
+nd$se = predict(log_com, newdata = nd, se.fit=T)$se.fit
+nd$upr = nd$y + qnorm(0.975) * nd$se
+nd$lwr = nd$y - qnorm(0.975) * nd$se
 ```
 
 
-
-#### Goodness of fit 
+When we have the data, we just need to plot the odds: 
 
 ```{r}
-msme::P__disp(log_NI)
+ggplot(nd, aes(x = interaction(CHome, CWin), y = y)) +
+  geom_pointrange(data = nd, aes(ymin = lwr, ymax = upr), color = "black", alpha = 0.3)+
+  labs(
+    title = "Figure 6: Predicted odds",
+    subtitle = "Interaction term with complete logistic model",
+    x = "Interaction", 
+    y = "Predicted Odds", ) +
+  scale_x_discrete(labels = c("Home=0, Win=0", "Home=1, Win=0", "Home=0, Win=1", "Home=1, Win=1"))+
+  theme_classic() +
+  theme(
+    plot.title = element_text(face = "bold", 
+                              size = 12, 
+                              hjust = 0.5, 
+                              family = "gideon roman"), 
+    plot.subtitle = element_text(size = 10, 
+                                 hjust = 0.5, 
+                                 family = "gideon roman"), 
+    axis.title.x = element_text(size = 10, family = "gideon roman"),
+    axis.title.y = element_text(size = 10, family = "gideon roman"))
 ```
+
+
 
 ### Negative Binomial 
 
+The negative binomial model is trained with all the previous variables + the lagged variables. Additionally, we use the *glm.nb* funtion form the `MASS` package. 
+
+For mere statistical purposes, we may calculate the dispersion value of the model with the *P__disp* function from `msme` package. 
+
 ```{r}
-NB_NI <- glm.nb(
+NB <- glm.nb(
   protests ~
-    CHome + 
-    CWin +
     CHome*CWin +
     pcg_catholics +
     pcg_car +
@@ -180,29 +219,22 @@ NB_NI <- glm.nb(
   data = data
 )
 
-summary(NB_NI)
-
-```
-
-#### Evaluation 
-
-```{r}
-exp(coefficients(NB_NI)); P__disp(NB_NI)
+summary(NB); P__disp(NB)
 
 ```
 
 
 ### Zero-Inflated Negative Binomial
 
+Similarly, we can finally run the zero inflated negative binomila model with the *zeroinfl* function from `pscl`package. 
+
 ```{r}
 data2 <- data %>% dplyr::select(-is_protest)
 
-ZI2_NI <- zeroinfl(
+ZI_NB <- zeroinfl(
   protests ~
-    CHome + 
-    CWin +
-    pcg_catholics +
     CHome*CWin +
+    pcg_catholics +
     pcg_car +
     pcg_unem +
     distance + 
@@ -218,20 +250,17 @@ ZI2_NI <- zeroinfl(
   dist="negbin", 
   link="logit")
 
-summary(ZI2_NI)
+summary(ZI_NB); P__disp(ZI_NB)
 
 ```
-
-```{r}
-exp(coefficients(ZI2_NI))
-
-P__disp(ZI2_NI)
-```
-
 
 ### Additional models
 
-#### Quassi Poisson Model 
+Taking advantage of the data already loaded, we may run some other models. They are not included in the analysis, but they were initially considered. 
+
+#### Quasi Poisson Model 
+
+To consider the over-dispersion of data, a quasi-poisson model may be trained:
 
 ```{r}
 QP_NI <- glm(
@@ -249,23 +278,16 @@ QP_NI <- glm(
   family = "quasipoisson", 
   control = list(maxit = 100))
 
-summary(QP_NI)
-```
-
-```{r}
-exp(coefficients(QP_NI))
-
-P__disp(QP_NI) 
-
+summary(QP_NI); P__disp(QP_NI) 
 ```
 
 #### Zero-Inflated Poisson
 
+The simpler version of the ZI-NB can be trained as follows: 
+
 ```{r}
-ZI_NI <- zeroinfl(
+ZI_NI2 <- zeroinfl(
   protests ~
-    CHome + 
-    CWin +
     CHome*CWin + 
     pcg_catholics +
     pcg_car +
@@ -278,23 +300,12 @@ ZI_NI <- zeroinfl(
     pcg_catholics +
     pcg_car +
     pcg_unem + 
-    #lagged_week + 
-    #lagged_month +
     distance, 
   data = data, 
   dist="poisson", 
   link="logit")
 
-summary(ZI_NI)
+summary(ZI_NI2); P__disp(ZI_N2)
 ```
-
-
-```{r}
-exp(coefficients(ZI_NI))
-
-P__disp(ZI_NI)
-
-```
-
 
 
