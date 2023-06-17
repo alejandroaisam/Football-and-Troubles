@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-The following code corresponds to the section II of the master's thesis. More specifically, it is devoted to the construction of various generalized linear models to analyse the effect of football matches in protests. As an aclanatory note, the interpretations are present in the proper thesis. 
+The following code corresponds to the section II of the master's thesis. More specifically, it is devoted to the construction of various generalized linear models to analyse the effect of football matches in protests. As an clarifiying note, the interpretations of the results are present in the proper thesis. 
 
 ```{r message=FALSE, warning=FALSE}
 library(caret)
@@ -30,9 +30,9 @@ library(tidyverse)
 
 ### Loading Data 
 
-For this section of the thesis we load the database concerning the matches of Cliftonville. To allow the regression work, some variables are recoded as factor. We also include the lagged variables for the negative binomial models. 
+For this section of the thesis we load the database concerning the matches of Cliftonville. To allow the regression to work, some variables are recoded as factor. We also include the lagged variables for the negative binomial models. 
 
-Similarly, matches are usually played on Sundays. Thus, we establish that the actual variable to predict is the number of protests of the next week. Similarly, some week-district had two matches. However, they cannot be removed as they entail different events, which can affect very differently to the proper outcome. 
+Similarly, matches are usually played on Sundays. Thus, we establish that the actual variable to predict is the number of protests of the following week. Also, some week-district had two matches. However, they cannot be removed as they entail different events, which can affect very differently to the proper outcome. 
 
 ```{r}
 Cliftonville <- read.csv("Databases/Final_Cliftonville.csv") %>% 
@@ -148,7 +148,7 @@ log_com <- glm(
   data = data, 
   family = "binomial") 
 
-summary(log_com); msme::P__disp(log_NI)
+summary(log_com); msme::P__disp(log_com)
 
 
 ```
@@ -202,7 +202,7 @@ ggplot(nd, aes(x = interaction(CHome, CWin), y = y)) +
 
 ### Negative Binomial 
 
-The negative binomial model is trained with all the previous variables + the lagged variables. Additionally, we use the *glm.nb* funtion form the `MASS` package. 
+The negative binomial model is trained with all the previous variables + the lagged variables. Additionally, we use the *glm.nb* function form the `MASS` package. 
 
 For mere statistical purposes, we may calculate the dispersion value of the model with the *P__disp* function from `msme` package. 
 
@@ -226,7 +226,7 @@ summary(NB); P__disp(NB)
 
 ### Zero-Inflated Negative Binomial
 
-Similarly, we can finally run the zero inflated negative binomila model with the *zeroinfl* function from `pscl`package. 
+Similarly, we can finally run the zero inflated negative binomial model with the *zeroinfl* function from `pscl`package. 
 
 ```{r}
 data2 <- data %>% dplyr::select(-is_protest)
@@ -260,7 +260,7 @@ Taking advantage of the data already loaded, we may run some other models. They 
 
 #### Quasi Poisson Model 
 
-To consider the over-dispersion of data, a quasi-poisson model may be trained:
+Due to the over-dispersion of data, a quasi-poisson model may be trained:
 
 ```{r}
 QP_NI <- glm(
@@ -305,7 +305,7 @@ ZI_NI2 <- zeroinfl(
   dist="poisson", 
   link="logit")
 
-summary(ZI_NI2); P__disp(ZI_N2)
+summary(ZI_NI2); P__disp(ZI_NI2)
 ```
 
 
