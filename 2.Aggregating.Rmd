@@ -45,10 +45,10 @@ Cliftonville <- read_csv("~/CliftonvilleCleaned.csv") %>%
 
 ## 2. Aggregating
 
-First, we need create a sequence that accounts for all the days ranging from the first of January 1980 to the 31st of December 1995. i.e. the period of study. 
+First, we need to create a sequence that accounts for all the days ranging from the first of January 1980 to the 31st of December 1995. i.e. the period of study. 
 
 ```{r}
-date <- seq(as.Date("1980/01/01"), as.Date("1995/12/31"), by = "day")
+date_seq <- seq(as.Date("1980/01/01"), as.Date("1995/12/31"), by = "day")
 ```
 
 Then, we obtain the number of protests per day. This step is necessary to perform the future aggregations. 
@@ -64,10 +64,10 @@ Agg_protests <- Protests %>%
 
 ### 2.1. Week-District Aggregation
 
-At this step, we are able to create the dependent variable, which accounts for the number of protests per district. To do that, we join the sequence of the dates with the protests. Then, we just need to replace missing values from the dataframe with '0s'. It is necessary to establish that days without protests or matches are not missing data. Finally, I just group by week and district and sum the number of protests that took place. Likewise, the binary independent variable is created. 
+At this step, we are able to create the dependent variable, which accounts for the number of protests per district. To do that, we join the sequence of the dates with the protests. Then, we just need to replace missing values from the dataframe with '0s'. It is necessary to establish that days without protests or matches are not missing data. Finally, I just group by week and district and sum the number of protests that took place. Likewise, the binary dependent variable is created. 
 
 ```{r}
-weekly_protests <- as_tibble(date) %>%
+weekly_protests <- as_tibble(date_seq) %>%
   rename(Date = value) %>%
   left_join(Agg_protests, by = c("Date")) %>%
   complete(Date, District) %>% 
@@ -85,7 +85,7 @@ weekly_protests <- as_tibble(date) %>%
 
 #### 2.1.1. Derry aggregated 
 
-With the data of protests aggregated by week, I can finally merge it with the Derry City FC results. 
+With the data of protests aggregated by week, we can finally merge it with the Derry City FC results. 
 
 ```{r}
 Derry_aggregated <-  weekly_protests  %>% 
@@ -178,7 +178,7 @@ DA_87_95 <- Derry_aggregated %>%
   left_join(control1991, by = "District") %>% 
   replace_na(list(pcg_car = 0.68, pcg_Unem = 0.16)) 
 
-Final_Derry <- rbind(DA_81_87, DA_87_95)%>% 
+Final_Derry <- rbind(DA_81_87, DA_87_95) %>% 
   left_join(Derry_Distances, by = "District")
 
 write.csv(Final_Derry, "Databases/Final_Derry.csv")
@@ -186,7 +186,7 @@ write.csv(Final_Derry, "Databases/Final_Derry.csv")
 
 ### 3.3. Adding control to the Cliftonville database
 
-Same as before, I just need to merge the different databases:
+Same as before, we just need to merge the different databases:
 
 ```{r}
 CA_81_87 <- Cliftonville_aggregated %>% 
@@ -215,6 +215,6 @@ Final_Cliftonville <- rbind(CA_81_87, CA_87_95) %>%
 write.csv(Final_Cliftonville, "Databases/Final_Cliftonville.csv")
 ```
 
-The resulting dataframes are ready for the analysis. Now they contain the data aggregated at the week-district level, accounting for the number of protests, whether the teams played at home or won a match. The control variables accounting for the percentage of catholics, the distance to the City, and the socio-economic variables are also included. 
+The resulting dataframes are almost ready for the analysis. They now contain the data aggregated at the week-district level, accounting for the number of protests, whether the teams played at home or won a match. The control variables accounting for the percentage of catholics, the distance to the City, and the socio-economic variables are also included. 
 
-It has to be mention that this new table is not the definitive dataframe for all of the analyses. It is the general one that accounts for all the variables needed. Then, minor changes will be done at each section to have the specifics needed for each study. 
+It has to be mention that this new table is not the definitive dataframe for all of the analyses. It is the general one that accounts for all the variables needed. Then, minor changes will be done at each section to have the specifics needed for each particular study. 
