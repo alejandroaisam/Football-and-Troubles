@@ -5,11 +5,11 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-This notebook will contain all the sub-steps of the first stage of the analysis in a single file. The main purpose is to unify the process so the replication code for the master's thesis is easier and more understandable. Small text will be added to each chunk of code to explain the logic of the step and/or clarify some issues.
+This notebook contains all the sub-steps of the first stage of the analysis in a single file. The main purpose is to unify the process so the replication code for the master's thesis is easier and more understandable. Small text will be added to each chunk of code to explain the logic of the step and/or clarify some issues.
 
 ## 1. Treating the raw data.
 
-The first task done in the process of writing the thesis corresponded to the extraction and management of the data needed for the analysis: the data on protests and the data for the football matches.
+The first task done in the process of writing the thesis corresponded to the extraction and management of the data needed for the analysis: the data of protests and the data for the football matches.
 
 ```{r message=FALSE, warning=FALSE}
 library(readr)
@@ -18,7 +18,7 @@ library(tidyverse)
 
 ### 1.1. Cleaning protests.
 
-In order to get the data, I downloaded the files in [Ron Francisco's webpage](https://ronfran.ku.edu/data/index.html) concerning both Northern Ireland and Republic of Ireland. At the beginning of the process, the Republic of Ireland was to be included in the analysis. However, It was ultimately removed, but its data was already treated. At this step, I will only prepare the data for the analysis; make the column names more understandable and add time and location.
+In order to get the data, I downloaded the files in [Ron Francisco's webpage](https://ronfran.ku.edu/data/index.html) concerning both Northern Ireland and Republic of Ireland. At the beginning of the process, the Republic of Ireland was to be included in the analysis. However, It was ultimately removed, but its data had already been cleaned. At this step, we will only prepare the data for the analysis; make the column names more understandable and add time and location.
 
 #### Northern Ireland
 
@@ -42,9 +42,9 @@ NI_Raw <- rbind(NI80_83, NI84_86, NI87_89,
 write.csv(NI_Raw, file = "Databases/Protests/NI_Raw.csv")
 ```
 
-Once the data is merged, we can rename some date columns, create others, and add the district for the different population, with the aim of standarization among the different datafranes. 
+Once the data is merged, we can rename some date columns, create others, and add the district for the different population, all with the aim of standardization.  
 
-As a small warning, the following part was originally done in a different script. Moreover, it is possible that some locations are wrongly distributed. This step was done by hand, using the 26 districts that used to divide the region between 1972 and 2015 as reference. Also, the issues non-related to *The Troubles* are defined at this stage, suffering from the same issue. 
+As a small warning, the following part was originally done in a different script. Moreover, it is possible that some locations are wrongly distributed. This step was done by hand, using the 26 districts that used to divide the region between 1972 and 2015 as reference. Also, the issues non-related to *The Troubles* are defined at this stage. The same issue may appear.  
 
 ```{r}
 Antrim <- c("Antrim", "Toomebridge", "Parkgate", "Red Arch", "Derryiaghy") 
@@ -140,7 +140,6 @@ IssuesRemoval <- c("wages", "meal money", "ferry service", "farm prices", "labor
 ```{r}
 NIProtestsDF <- NI_Raw %>% 
   mutate(
-    fecha = Date, # Probably not necessary now. 
     Date = dmy(Date)) %>% 
   rename(
     Perpetrator = Protester, 
@@ -151,7 +150,7 @@ NIProtestsDF <- NI_Raw %>%
     N_StateInjured = Injuries...19, 
     N_StateForces = `# State`) %>% 
   mutate( 
-    District = case_when( # Separate Script!!!
+    District = case_when( 
       Location %in% Antrim ~ "Antrim", 
       Location %in% Ards ~ "Ards",
       Location %in% Armagh ~ "Armagh",
@@ -206,7 +205,6 @@ write.csv(Ireland_Raw, file = "Databases/Protests/Ireland_Raw.csv")
 
 IrelandProtestsDF <- Ireland_Raw %>% 
    mutate(
-     fecha = Date, # Probably not necessary now
      Date = dmy(Date)) %>% 
   rename(
     Perpetrator = Protester, 
@@ -238,7 +236,7 @@ ProtestsFiltered <- ProtestsDF %>%
   arrange(Date) %>% 
   drop_na(Event) %>% 
   filter(Target != "prison" & Target != "prison guards") %>% 
-  filter(!(Issue %in% IssuesRemoval)) # Separate Script!!
+  filter(!(Issue %in% IssuesRemoval)) 
 
 write.csv(ProtestsFiltered, file = "Databases/Protests/ProtestsFiltered.csv")
 ```
@@ -336,7 +334,7 @@ four <- derry_extractor(Derry1994)
 five <- derry_extractor(Derry1995)
 ```
 
-Once we have the data for all the competition, I formatted the columns so I could later perform the cleaning operations. Then, I unified all the years into a single dataframe containing all the matches. The resulting dataframe is the equivalent to the protests one, before the cleaning (NI_Raw)
+Once we have the data for all the competition, I formatted the columns so I could later perform the cleaning operations. Then, I unified all the years into a single dataframe containing all the matches. The resulting dataframe is the equivalent to the protests one, before the cleaning (NI_Raw). 
 
 ```{r}
 DF1987 <- seven %>% 
@@ -538,7 +536,7 @@ DerryCityDF <- rbind(DF1987, DF1988, DF1989, DF1990,
 write.csv(DerryCityDF, file = "Databases/DerryCity/DerryCityDF.csv")
 ```
 
-Then, I performed the same tasks as with the protests. I renamed some columns, and added the time and location. With respect to the location, a binary variable is created referring to the match played in Derry. Also, the dummy accounting for a Derry win is created. These two are the future independent variables.
+Then, we can perform the same tasks as with the protests. We rename some columns, and added the time and location. With respect to the location, a binary variable is created referring to the match played in Derry. Also, the dummy accounting for a Derry win is created. These two would be the independent variables.
 
 ```{r}
 DerryCityDF <- read_csv("Databases/DerryCity/DerryCityDF.csv") 
@@ -574,7 +572,7 @@ write.csv(DerryCityCleaned, file = "Databases/DerryCity/DerryCityCleaned.csv")
 
 #### 1.2.2. Cliftonville FAC
 
-As mentioned in the thesis, the footballing results were provided by Haydn Milligan. Thus, the original data cannot be posted in this repository. However, the full list can be visualized [here](https://www.irishleaguearchive.org/by-team). Assuming that the data is present, the cleaning process would be the same: renaming of some variables, adding time and location and the future independent variables:
+As mentioned in the thesis, the footballing results were provided by Haydn Milligan. Thus, the original data cannot be posted in this repository. However, the full list can be visualized [here](https://www.irishleaguearchive.org/by-team). Assuming that the data is present, the cleaning process would be the same: renaming of some variables, adding time and location and the dummy independent variables:
 
 ```{r}
 CliftonvilleCleaned <- Cliftonville80_95 %>% 
@@ -633,7 +631,7 @@ write.csv(CliftonvilleCleaned, file = "~/CliftonvilleCleaned.csv")
 
 #### 1.3.1 Socio-Economic
 
-In order to get the data for the control variables, I resorted to the UK censuses of 1981 and 1991 and the Cain archives. In the first case, one can easily download the data from [nomis](https://www.nomisweb.co.uk/). Then, I just renamed the variables and aggregate some of them to obtain the percentage of households with car and the percentage of unemployed people.
+In order to get the data for the control variables, I resorted to the UK censuses of 1981 and 1991 and the Cain archives. In the first case, one can easily download the data from [nomis](https://www.nomisweb.co.uk/). Then, we just renamed the variables and aggregate some of them to obtain the percentage of households with car and the percentage of unemployed people.
 
 ```{r}
 census1991 <- read_delim("Databases/1991census.csv", 
@@ -680,7 +678,7 @@ control1981 <- census1981 %>%
 write.csv(control1981, "Databases/control1981.csv")
 ```
 
-With respect to the religious data, I collected it from [Cain](https://cain.ulster.ac.uk/ni/popul.htm#cath). Then, as usual, I renamed the variables and create a dummy for those districts that possessed majority of catholics. While it would not be later used, it may had served in the analysis.
+With respect to the religious data, I collected it from [Cain](https://cain.ulster.ac.uk/ni/popul.htm#cath). Then, as usual, we rename the variables and create a dummy for those districts that possessed majority of catholics. While it would not be later used, it may had served in the analysis.
 
 ```{r}
 ReligionLink <- "https://cain.ulster.ac.uk/ni/popul.htm#cath" %>% 
@@ -724,7 +722,7 @@ library(tidyverse)
 Finally, I downloaded the GIS data for the 26 districts from [GADM](https://gadm.org/data.html) in Geographic Information System (GIS) shapefile format and stored them in *\~/Data*. As the data incorporates all the United Kingdom and various administrative levels, I needed to keep only the region of Northern Ireland at the 26-district level. Then, I stored the new shapefile that accounts only for NI.
 
 ```{r}
-UK <- readOGR(dsn = "data", layer = "gadm36_GBR_3")
+UK <- readOGR(dsn = "data", layer = "gadm36_GBR_3") # until october 23
 
 Districts <- c("Antrim", "Ards", "Armagh", "Ballymena", "Ballymoney", 
                "Banbridge", "Belfast", "Carrickfergus", "Castlereagh", 
@@ -734,12 +732,9 @@ Districts <- c("Antrim", "Ards", "Armagh", "Ballymena", "Ballymoney",
                "Omagh", "Strabane", "Magherafelt")
 
 NI <- UK[UK$NAME_3 %in% Districts, ]
-
-#writeOGR(obj = NI, dsn = "data", layer = "NI", driver = "ESRI Shapefile")
-
 ```
 
-Then, I can calculate the distances to Derry and Belfast from all of the other districts. It has to be noted here that each district is composed by a polygon, and the distances are calculated from the centroids of each one.
+Then, we can calculate the distances to Derry and Belfast from all of the other districts. It has to be noted here that each district is composed by a polygon, and the distances are calculated from the centroids of each one.
 
 Thus, we may get the coordinates and centroids:
 
