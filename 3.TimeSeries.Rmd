@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-The following code corresponds to the first part of the section I of the masters' thesis. The visualization of the number of protests in the region of Northern Ireland in different maps. 
+The following code corresponds to the first part of the section I of the masters' thesis. The visualization of the number of protests in the region of Northern Ireland in different formats. 
 
 ### Libraries 
 
@@ -80,7 +80,7 @@ showtext::showtext_auto()
 
 #### Montly protests 
 
-First time series depicting the number of protests per month in the region of Northern Ireland. 
+First, the time series depicting the number of protests per month in the region of Northern Ireland. 
 
 ```{r}
 pi <- ggplot(data = total, aes(x = month, y = total_protests )) +
@@ -114,7 +114,7 @@ pi
 ```
 #### Montly protests in Derry 
 
-Second time series: number of protests per month only in the Derry District. 
+Second time series: number of protests per month in the Derry District. 
 
 ```{r}
 pd <- ggplot(data = Derry, aes(x = month, y = monthly_protests )) +
@@ -140,9 +140,7 @@ pd <- ggplot(data = Derry, aes(x = month, y = monthly_protests )) +
     plot.caption = element_text(size = 8, family = "gideon roman"),
     axis.title.x = element_text(size = 11, family = "gideon roman"), 
     axis.title.y = element_text(size = 11, family = "gideon roman"))
-```
 
-```{r}
 pd
 ```
 
@@ -174,13 +172,11 @@ pb <- ggplot(data = Belfast, aes(x = month, y = monthly_protests )) +
     plot.caption = element_text(size = 8, family = "gideon roman"),
     axis.title.x = element_text(size = 11, family = "gideon roman"), 
     axis.title.y = element_text(size = 11, family = "gideon roman"))
-```
 
-```{r}
 pb
 ```
 
-#### Discontinuity 
+#### Discontinuity (Annex I)
 
 Additional representation accounting for the regression discontinuity design. The monthly number of protests in NI in the period 1983-1991 are present. 
 
@@ -208,9 +204,7 @@ prdd <- ggplot(data = RDD, aes(x = month, y = total_protests )) +
     plot.caption = element_text(size = 8, family = "gideon roman"),
     axis.title.x = element_text(size = 11, family = "gideon roman"), 
     axis.title.y = element_text(size = 11, family = "gideon roman"))
-```
 
-```{r}
 prdd
 ```
 
