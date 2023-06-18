@@ -34,7 +34,7 @@ The first section of the analysis on the effect of football in the troubles enta
 
 -   Time Series analysis (TimeSeries.Rmd): a visualization depicting the number of protests per month in three contexts: Northern Ireland, Derry and Belfast.
 
--   Geographical analysis (MapViz.Rmd and AnimatedMap.Rmd): A map construction representing the number of protests per year in each district.
+-   Geographical analysis (MapViz.Rmd and AnimatedMaps.Rmd): A map construction representing the number of protests per year in each district.
 
 
 ## 4. Cliftonville FAC analysis
