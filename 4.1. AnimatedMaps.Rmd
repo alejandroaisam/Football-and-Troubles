@@ -79,7 +79,7 @@ ma <- ggplot()+
     plot.subtitle = element_text(size = 12, 
                                  hjust = 0.5, 
                                  family = "gideon roman"),
-    plot.caption = element_text(size = 8, family = "gideon roman"), 
+    plot.caption = element_text(size = 11, family = "gideon roman"), 
   legend.position = "none") +
   labs(x = NULL, y = NULL)
 ```
@@ -91,14 +91,14 @@ pma
 
 ## Animated map 2: Protests per capita 
 
-The second version of the animated representations shows the evolution in time of the number of protests per year, depending on the (log) population of each district. 
+The second version of the animated representations shows the evolution in time of the number of protests per 1000 people in each year. 
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 data_year_pc <- df |> 
   dplyr::select(-...1) %>% 
   group_by(year = floor_date(week, unit = "year"), District) %>% 
   reframe(
-    protests_pc = sum(n_protests)/log(Population+1)) |> 
+    protests_pc = sum(n_protests)/(Population/1000)) |> 
   unique() |> 
   mutate(
     year = year(year))
@@ -131,7 +131,7 @@ ma_pc <- ggplot()+
     plot.subtitle = element_text(size = 12, 
                                  hjust = 0.5, 
                                  family = "gideon roman"),
-    plot.caption = element_text(size = 8, family = "gideon roman"),
+    plot.caption = element_text(size = 10, family = "gideon roman"),
   legend.position = "none") +
   labs(x = NULL, y = NULL)
 ```
@@ -144,14 +144,14 @@ pma_pc
 
 ## Animated map 3: Protests per Catholic percentage
 
-Finally, we can visualize the number of protests per year, dependant on the log percentage of catholics. 
+Finally, we can visualize the number of protests per year, dependant on the  percentage of catholics. 
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 data_year_pr <- df |> 
   dplyr::select(-...1) %>% 
   group_by(year = floor_date(week, unit = "year"), District) %>% 
   reframe(
-    protests_pr = sum(n_protests)/log(pcg_catholics)) |> 
+    protests_pr = sum(n_protests)/(pcg_catholics/100)) |> 
   unique() |> 
   mutate(
     year = year(year))
@@ -185,7 +185,7 @@ ma_pr <- ggplot()+
     plot.subtitle = element_text(size = 12, 
                                  hjust = 0.5, 
                                  family = "gideon roman"),
-    plot.caption = element_text(size = 8, family = "gideon roman"),
+    plot.caption = element_text(size = 10, family = "gideon roman"),
     legend.position = "none") +
   labs(x = NULL, y = NULL)
 ```
