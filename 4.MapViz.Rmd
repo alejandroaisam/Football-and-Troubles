@@ -131,7 +131,7 @@ pm
 
 ### Protests per year, animated. 
 
-The second map is the animated version of the first representation. A separate markdown can be found for knitting purposes. 
+The second map is the animated version of the first representation. A separate markdown can be found with more examples. 
 
 ```{r message=FALSE, warning=FALSE}
 ma <- ggplot()+

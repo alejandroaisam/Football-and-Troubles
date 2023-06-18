@@ -135,6 +135,8 @@ ma_pc <- ggplot()+
 pma_pc <- animate(ma_pc, fps = 5)
 pma_pc
 ```
+
+
 ## Animated map 3: Protests per Catholic percentage
 
 Finally, we can visualize the number of protests per year, dependant on the log percentage of catholics. 
