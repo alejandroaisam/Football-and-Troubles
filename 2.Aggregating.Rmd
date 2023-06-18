@@ -137,10 +137,10 @@ Derry_Distances <- read_csv("Databases/Derry_Distances.csv")%>%
   dplyr::select(-...1, -Distance)
 
 control1981 <- read.csv("Databases/control1981.csv") %>% 
-  dplyr::select(District, pcg_car, pcg_Unem)
+  dplyr::select(District, pcg_car, pcg_Unem, Population)
 
 control1991 <- read.csv("Databases/control1991.csv") %>% 
-  dplyr::select(District, pcg_car, pcg_Unem) %>% 
+  dplyr::select(District, pcg_car, pcg_Unem, Population) %>% 
   drop_na()
 
 Cliftonville_aggregated <- read_csv("Databases/Cliftonville_aggregated.csv") %>%
